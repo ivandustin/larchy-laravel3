@@ -19,7 +19,7 @@ Installation
 Examples
 --------
 
-<pre>
+```php
 class Example_Controller extends Base_Controller
 {
   public function action_index()
@@ -36,11 +36,11 @@ class Example_Controller extends Base_Controller
     return Larchy::make($data, 200, $headers);
   }
 }
-</pre>
+```
 
 You could also specify a title string directly if you will not going to specify some other variables.
 
-<pre>
+```php
 class Example_Controller extends Base_Controller
 {
   public function action_index()
@@ -48,4 +48,4 @@ class Example_Controller extends Base_Controller
     return Larchy::make('Example Page');
   }
 }
-</pre>
+```
