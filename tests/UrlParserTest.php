@@ -44,44 +44,24 @@ class UrlParserTest extends PHPUnit_Framework_TestCase
 	{
 		$urlParser = new UrlParser;
 
-		// Test fully qualified link
-		$url = 'http://www.host.com/site/a/b';
-		$base = 'http://www.host.com/site';
+		# Should work with properly formatted URLs
+		$res = $urlParser->stemleaf('www.mydomain.com/mysite/a/b', 'www.mydomain.com/mysite');
+		$this->assertEquals('a', $res['stem']);
+		$this->assertEquals('b', $res['leaf']);
 
-		$stemleaf = $urlParser->stemleaf( $url, $base );
-		$this->assertEquals( 'a', $stemleaf['stem'] );
-		$this->assertEquals( 'b', $stemleaf['leaf'] );
+		# Should ignore protocols
+		$res = $urlParser->stemleaf('https://www.mydomain.com/mysite/a/b', 'http://www.mydomain.com/mysite');
+		$this->assertEquals('a', $res['stem']);
+		$this->assertEquals('b', $res['leaf']);
 
-		// Test without leaf
-		$url = 'http://www.host.com/site/a';
-		$base = 'http://www.host.com/site';
+		# Should work with arbitrary formatted URLs
+		$res = $urlParser->stemleaf('https://www.mydomain.com/mysite/a/b/?key=value', 'www.mydomain.com/mysite');
+		$this->assertEquals('a', $res['stem']);
+		$this->assertEquals('b', $res['leaf']);
 
-		$stemleaf = $urlParser->stemleaf( $url, $base );
-		$this->assertEquals( 'a', $stemleaf['stem'] );
-		$this->assertEquals( 'index', $stemleaf['leaf'] );
-
-		// Test without stem
-		$url = 'http://www.host.com/site';
-		$base = 'http://www.host.com/site';
-
-		$stemleaf = $urlParser->stemleaf( $url, $base );
-		$this->assertEquals( 'home', $stemleaf['stem'] );
-		$this->assertEquals( 'index', $stemleaf['leaf'] );
-
-		// Test different url than base
-		$url = 'http://www.different.com/site/some/path';
-		$base = 'http://www.host.com/site';
-
-		$stemleaf = $urlParser->stemleaf( $url, $base );
-		$this->assertFalse( $stemleaf );
-
-		// Test with trailing forward slashes
-		$url = 'http://www.host.com/site/a/b/';
-		$base = 'http://www.host.com/site/';
-
-		$stemleaf = $urlParser->stemleaf( $url, $base );
-		$this->assertEquals( 'a', $stemleaf['stem'] );
-		$this->assertEquals( 'b', $stemleaf['leaf'] );
+		# Should return false if the URL is not relative
+		$res = $urlParser->stemleaf('www.other.com/mysite/stem/leaf', 'www.mydomain.com/mysite');
+		$this->assertFalse($res);
 	}
 
 	public function test_stem_method()

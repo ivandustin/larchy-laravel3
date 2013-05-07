@@ -7,8 +7,8 @@ class UrlParser
 	public function stemleaf( $url, $base )
 	{
 		// Prepare the urls
-		$url = $this->clean( $url, 'querystring|endslash' );
-		$base = $this->clean( $base, 'querystring|endslash' );
+		$url = $this->clean( $url, 'protocol|querystring|endslash' );
+		$base = $this->clean( $base, 'protocol|querystring|endslash' );
 
 
 		// Begin parsing
