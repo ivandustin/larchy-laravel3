@@ -162,8 +162,8 @@ class ResponseBuilderTest extends PHPUnit_Framework_TestCase
 		$request->shouldReceive('url')->once()->andReturn('currentUrl');
 		$request->shouldReceive('referrer')->once()->andReturn('referrer');
 
-		$urlParser->shouldReceive('stem')->with('referrer', 'baseUrl')->andReturn( 'oldStem' );
 		$urlParser->shouldReceive('stemleaf')->with('currentUrl', 'baseUrl')->andReturn( array('stem' => 'newStem', 'leaf' => 'newLeaf') );
+		$urlParser->shouldReceive('stemleaf')->with('referrer', 'baseUrl')->andReturn( array('stem' => 'oldStem', 'leaf' => 'oldLeaf') );
 
 		$view->shouldReceive('makeStem')->once()->with('newStem', 'newLeaf')->andReturn('html stem with leaf');
 
@@ -174,7 +174,7 @@ class ResponseBuilderTest extends PHPUnit_Framework_TestCase
 		$this->assertEquals( 'responseObject', $result);
 	}
 	
-	public function test_powerload_method_with_same_stem()
+	public function test_powerload_method_with_same_stem_but_different_leaf()
 	{
 		extract( $this->objects );
 
@@ -187,13 +187,39 @@ class ResponseBuilderTest extends PHPUnit_Framework_TestCase
 		$request->shouldReceive('url')->once()->andReturn('currentUrl');
 		$request->shouldReceive('referrer')->once()->andReturn('referrer');
 
-		$urlParser->shouldReceive('stem')->with('referrer', 'baseUrl')->andReturn( 'oldStem' );
-		$urlParser->shouldReceive('stemleaf')->with('currentUrl', 'baseUrl')->andReturn( array('stem' => 'oldStem', 'leaf' => 'someLeaf') );
+		$urlParser->shouldReceive('stemleaf')->with('currentUrl', 'baseUrl')->andReturn( array('stem' => 'oldStem', 'leaf' => 'newLeaf') );
+		$urlParser->shouldReceive('stemleaf')->with('referrer', 'baseUrl')->andReturn( array('stem' => 'oldStem', 'leaf' => 'oldLeaf') );
 
 		$view->shouldReceive('makeStem')->never();
-		$view->shouldReceive('makeLeaf')->once()->with('oldStem', 'someLeaf')->andReturn('html leaf');
+		$view->shouldReceive('makeLeaf')->once()->with('oldStem', 'newLeaf')->andReturn('html leaf');
 
 		$response->shouldReceive('json')->once()->with(array('title' => $title, 'leaf' => 'html leaf'), $statusCode, $headers)->andReturn('responseObject');
+
+		$result = $responseBuilder->powerload( $title, $statusCode, $headers );
+
+		$this->assertEquals( 'responseObject', $result);
+	}
+
+	public function test_powerload_method_with_same_stem_and_leaf()
+	{
+		extract( $this->objects );
+
+		$title = 'page title';
+		$statusCode = 400;
+		$headers = array('a' => 'b');
+
+		$site->shouldReceive('base')->once()->andReturn('baseUrl');
+
+		$request->shouldReceive('url')->once()->andReturn('currentUrl');
+		$request->shouldReceive('referrer')->once()->andReturn('referrer');
+
+		$urlParser->shouldReceive('stemleaf')->with('currentUrl', 'baseUrl')->andReturn( array('stem' => 'oldStem', 'leaf' => 'oldLeaf') );
+		$urlParser->shouldReceive('stemleaf')->with('referrer', 'baseUrl')->andReturn( array('stem' => 'oldStem', 'leaf' => 'oldLeaf') );
+
+		$view->shouldReceive('makeStem')->never();
+		$view->shouldReceive('makeLeaf')->never();
+
+		$response->shouldReceive('json')->once()->with(NULL, $statusCode, $headers)->andReturn('responseObject');
 
 		$result = $responseBuilder->powerload( $title, $statusCode, $headers );
 

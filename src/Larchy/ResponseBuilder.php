@@ -57,11 +57,17 @@ class ResponseBuilder
 		$stemleaf = $this->urlparser->stemleaf( $requestUrl, $baseUrl );
 		$stem = $stemleaf['stem'];
 		$leaf = $stemleaf['leaf'];
-		$referrerStem = $this->urlparser->stem( $referrer, $baseUrl );
+		$referrerStemLeaf = $this->urlparser->stemleaf( $referrer, $baseUrl );
+		$referrerStem = $referrerStemLeaf['stem'];
+		$referrerLeaf = $referrerStemLeaf['leaf'];
 
 		$data['title'] = $title;
 
-		if( $stem === $referrerStem )
+		if( $stem === $referrerStem AND $leaf === $referrerLeaf )
+		{
+			$data = NULL;
+		}
+		else if( $stem === $referrerStem )
 		{
 			$data['leaf'] = $this->view->makeLeaf( $stem, $leaf );
 		}
