@@ -8,7 +8,6 @@ class ResponseBuilderTest extends PHPUnit_Framework_TestCase
 	public function setUp()
 	{
 		// Dependencies
-		$input = Mockery::mock('Input');
 		$site = Mockery::mock('Site');
 		$request = Mockery::mock('Request');
 		$urlParser = Mockery::mock('UrlParser');
@@ -16,11 +15,10 @@ class ResponseBuilderTest extends PHPUnit_Framework_TestCase
 		$response = Mockery::mock('Response');
 
 		// Subject
-		$responseBuilder = Mockery::mock('Larchy\ResponseBuilder', array($input, $site, $request, $urlParser, $view, $response))->makePartial();
+		$responseBuilder = Mockery::mock('Larchy\ResponseBuilder', array($site, $request, $urlParser, $view, $response))->makePartial();
 
 		// Pass all objects to method-local variable
 		$this->objects = array(
-			'input' => $input,
 			'site' => $site,
 			'request' => $request,
 			'urlParser' => $urlParser,
@@ -34,10 +32,10 @@ class ResponseBuilderTest extends PHPUnit_Framework_TestCase
 	{
 		Mockery::close();
 	}
-	
-	public function test_make_method_on_normal_page_load()
+
+	public function test_make_method()
 	{
-		extract( $this->objects );
+		extract($this->objects);
 
 		$data = array(
 			'title' => 'page title',
@@ -48,80 +46,22 @@ class ResponseBuilderTest extends PHPUnit_Framework_TestCase
 		$statusCode = 300;
 		$headers = array('a' => 'b');
 
-		$site->shouldReceive('base')->once()->andReturn('baseUrl');
+		# Should work on normal page load
+		$request->shouldReceive('powerload')->once()->andReturn(false);
+		$responseBuilder->shouldReceive('normal')->once()->with($data, $statusCode, $headers)->andReturn('Response Object');
+		$result = $responseBuilder->make($data, $statusCode, $headers);
+		$this->assertEquals('Response Object', $result);
 
-		$request->shouldReceive('referrer')->once()->andReturn(null);
-
-		$input->shouldReceive('get')->once()->with('powerload')->andReturn(null);
-
-		$urlParser->shouldReceive('isChild')->never();
-
-		$responseBuilder->shouldReceive('normal')->once()->with($data, $statusCode, $headers)->andReturn('responseObject');
-
-		$result = $responseBuilder->make( $data, $statusCode, $headers );
-
-		$this->assertEquals( 'responseObject', $result );
-	}
-
-	public function test_make_method_on_powerload_request()
-	{
-		extract( $this->objects );
-
-		$data = array(
-			'title' => 'page title',
-			'meta' => array(
-				'name' => 'content'
-			)
-		);
-		$statusCode = 300;
-		$headers = array('a' => 'b');
-
-		$site->shouldReceive('base')->once()->andReturn('baseUrl');
-
-		$request->shouldReceive('referrer')->once()->andReturn('referrerUrl');
-
-		$input->shouldReceive('get')->once()->with('powerload')->andReturn('true');
-
-		$urlParser->shouldReceive('isChild')->once()->with('referrerUrl', 'baseUrl')->andReturn(true);
-
-		$responseBuilder->shouldReceive('powerload')->once()->with($data['title'], $statusCode, $headers)->andReturn('responseObject');
-
-		$result = $responseBuilder->make( $data, $statusCode, $headers );
-
-		$this->assertEquals( 'responseObject', $result );
-	}
-
-	public function test_make_method_on_powerload_request_but_the_referrer_is_not_a_child()
-	{
-		extract( $this->objects );
-
-		$data = array(
-			'title' => 'page title',
-			'meta' => array(
-				'name' => 'content'
-			)
-		);
-		$statusCode = 300;
-		$headers = array('a' => 'b');
-
-		$site->shouldReceive('base')->once()->andReturn('baseUrl');
-
-		$request->shouldReceive('referrer')->once()->andReturn('externalUrl');
-
-		$input->shouldReceive('get')->once()->with('powerload')->andReturn('true');
-
-		$urlParser->shouldReceive('isChild')->once()->with('externalUrl', 'baseUrl')->andReturn(false);
-
-		$responseBuilder->shouldReceive('normal')->once()->with($data, $statusCode, $headers)->andReturn('responseObject');
-
-		$result = $responseBuilder->make( $data, $statusCode, $headers );
-
-		$this->assertEquals( 'responseObject', $result );
+		# Should work on powerload request
+		$request->shouldReceive('powerload')->once()->andReturn(true);
+		$responseBuilder->shouldReceive('powerload')->once()->with($data['title'], $statusCode, $headers)->andReturn('JSON Response Object');
+		$result = $responseBuilder->make($data, $statusCode, $headers);
+		$this->assertEquals('JSON Response Object', $result);
 	}
 
 	public function test_normal_method()
 	{
-		extract( $this->objects );
+		extract($this->objects);
 
 		$data = array(
 			'title' => 'hello world',
@@ -130,100 +70,43 @@ class ResponseBuilderTest extends PHPUnit_Framework_TestCase
 		$statusCode = 400;
 		$headers = array('a' => 'b');
 
-		$site->shouldReceive('base')->once()->andReturn('baseURL');
-
-		$request->shouldReceive('url')->once()->andReturn('currentUrl');
-
-		$stemleaf = array(
-			'stem' => 'imStem',
-			'leaf' => 'imLeaf'
-		);
-		$urlParser->shouldReceive('stemleaf')->once()->with('currentUrl', 'baseURL')->andReturn( $stemleaf );
-
-		$view->shouldReceive('make')->once()->with('imStem', 'imLeaf', $data)->andReturn('html');
-
-		$response->shouldReceive('make')->once()->with('html', $statusCode, $headers)->andReturn('responseObject');
-
-		$result = $responseBuilder->normal( $data, $statusCode, $headers );
-
-		$this->assertEquals( 'responseObject', $result );
+		# Should work normally
+		$site->shouldReceive('base')->once()->andReturn('Site Base URL');
+		$request->shouldReceive('url')->once()->andReturn('Current URL');
+		$urlParser->shouldReceive('stemleaf')->once()->with('Current URL', 'Site Base URL')->andReturn(array('stem' => 'A', 'leaf' => '1'));
+		$view->shouldReceive('make')->once()->with('A', '1', $data)->andReturn('Full Page Document');
+		$response->shouldReceive('make')->once()->with('Full Page Document', $statusCode, $headers)->andReturn('Response Object');
+		$result = $responseBuilder->normal($data, $statusCode, $headers);
+		$this->assertEquals('Response Object', $result);
 	}
 
-	public function test_powerload_method_with_different_stem()
+	public function test_powerload_method()
 	{
-		extract( $this->objects );
+		extract($this->objects);
 
-		$title = 'page title';
-		$statusCode = 400;
-		$headers = array('a' => 'b');
+		$pageTitle = 'Example Page';
+		$statusCode = 300;
+		$headers = array('field' => 'value');
 
-		$site->shouldReceive('base')->once()->andReturn('baseUrl');
+		# Should work normally
+		$site->shouldReceive('base')->once()->andReturn('Site Base URL');
+		$request->shouldReceive('url')->once()->andReturn('Current URL');
+		$urlParser->shouldReceive('stemleaf')->once()->with('Current URL', 'Site Base URL')->andReturn(array('stem' => 'A', 'leaf' => '1'));
+		$request->shouldReceive('leafOnly')->once()->andReturn(false);
+		$view->shouldReceive('makeStem')->once()->with('A', '1')->andReturn('HTML Stem + Leaf');
+		$response->shouldReceive('json')->once()->with(array('title' => $pageTitle, 'stem' => 'HTML Stem + Leaf'), $statusCode, $headers)->andReturn('JSON Response Object');
+		$result = $responseBuilder->powerload($pageTitle, $statusCode, $headers);
+		$this->assertEquals('JSON Response Object', $result);
 
-		$request->shouldReceive('url')->once()->andReturn('currentUrl');
-		$request->shouldReceive('referrer')->once()->andReturn('referrer');
-
-		$urlParser->shouldReceive('stemleaf')->with('currentUrl', 'baseUrl')->andReturn( array('stem' => 'newStem', 'leaf' => 'newLeaf') );
-		$urlParser->shouldReceive('stemleaf')->with('referrer', 'baseUrl')->andReturn( array('stem' => 'oldStem', 'leaf' => 'oldLeaf') );
-
-		$view->shouldReceive('makeStem')->once()->with('newStem', 'newLeaf')->andReturn('html stem with leaf');
-
-		$response->shouldReceive('json')->once()->with(array('title' => $title, 'stem' => 'html stem with leaf'), $statusCode, $headers)->andReturn('responseObject');		
-
-		$result = $responseBuilder->powerload( $title, $statusCode, $headers );
-
-		$this->assertEquals( 'responseObject', $result);
-	}
-	
-	public function test_powerload_method_with_same_stem_but_different_leaf()
-	{
-		extract( $this->objects );
-
-		$title = 'page title';
-		$statusCode = 400;
-		$headers = array('a' => 'b');
-
-		$site->shouldReceive('base')->once()->andReturn('baseUrl');
-
-		$request->shouldReceive('url')->once()->andReturn('currentUrl');
-		$request->shouldReceive('referrer')->once()->andReturn('referrer');
-
-		$urlParser->shouldReceive('stemleaf')->with('currentUrl', 'baseUrl')->andReturn( array('stem' => 'oldStem', 'leaf' => 'newLeaf') );
-		$urlParser->shouldReceive('stemleaf')->with('referrer', 'baseUrl')->andReturn( array('stem' => 'oldStem', 'leaf' => 'oldLeaf') );
-
-		$view->shouldReceive('makeStem')->never();
-		$view->shouldReceive('makeLeaf')->once()->with('oldStem', 'newLeaf')->andReturn('html leaf');
-
-		$response->shouldReceive('json')->once()->with(array('title' => $title, 'leaf' => 'html leaf'), $statusCode, $headers)->andReturn('responseObject');
-
-		$result = $responseBuilder->powerload( $title, $statusCode, $headers );
-
-		$this->assertEquals( 'responseObject', $result);
-	}
-
-	public function test_powerload_method_with_same_stem_and_leaf()
-	{
-		extract( $this->objects );
-
-		$title = 'page title';
-		$statusCode = 400;
-		$headers = array('a' => 'b');
-
-		$site->shouldReceive('base')->once()->andReturn('baseUrl');
-
-		$request->shouldReceive('url')->once()->andReturn('currentUrl');
-		$request->shouldReceive('referrer')->once()->andReturn('referrer');
-
-		$urlParser->shouldReceive('stemleaf')->with('currentUrl', 'baseUrl')->andReturn( array('stem' => 'oldStem', 'leaf' => 'oldLeaf') );
-		$urlParser->shouldReceive('stemleaf')->with('referrer', 'baseUrl')->andReturn( array('stem' => 'oldStem', 'leaf' => 'oldLeaf') );
-
-		$view->shouldReceive('makeStem')->never();
-		$view->shouldReceive('makeLeaf')->never();
-
-		$response->shouldReceive('json')->once()->with(NULL, $statusCode, $headers)->andReturn('responseObject');
-
-		$result = $responseBuilder->powerload( $title, $statusCode, $headers );
-
-		$this->assertEquals( 'responseObject', $result);
+		# Should work on leaf only request
+		$site->shouldReceive('base')->once()->andReturn('Site Base URL');
+		$request->shouldReceive('url')->once()->andReturn('Current URL');
+		$urlParser->shouldReceive('stemleaf')->once()->with('Current URL', 'Site Base URL')->andReturn(array('stem' => 'A', 'leaf' => '1'));
+		$request->shouldReceive('leafOnly')->once()->andReturn(true);
+		$view->shouldReceive('makeLeaf')->once()->with('A', '1')->andReturn('HTML Leaf Only');
+		$response->shouldReceive('json')->once()->with(array('title' => $pageTitle, 'leaf' => 'HTML Leaf Only'), $statusCode, $headers)->andReturn('JSON Response Object');
+		$result = $responseBuilder->powerload($pageTitle, $statusCode, $headers);
+		$this->assertEquals('JSON Response Object', $result);
 	}
 
 }

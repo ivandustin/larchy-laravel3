@@ -10,7 +10,7 @@ class Larchy
 	{
 		if( $responseBuilder === null )
 		{
-			$responseBuilder = new ResponseBuilder(new Input(), new Site(), new Request(), new UrlParser(), new View(), new Response());
+			$responseBuilder = new ResponseBuilder(new Site(), new Request(), new UrlParser(), new View(), new Response());
 		}
 
 		$this->responseBuilder = $responseBuilder;

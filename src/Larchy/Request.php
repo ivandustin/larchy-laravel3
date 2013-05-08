@@ -20,10 +20,31 @@ class Request
 		return $laravelUrl::full();
 	}
 
-	public function referrer()
+	public function powerload()
 	{
 		$laravelRequest = $this->laravelRequest;
 
-		return $laravelRequest::referrer();
+		$value = $laravelRequest::header('x-powerload');
+
+		if( is_array($value) AND $value[0] === 'true' )
+		{
+			return true;
+		}
+
+		return false;
+	}
+
+	public function leafOnly()
+	{
+		$laravelRequest = $this->laravelRequest;
+
+		$value = $laravelRequest::header('x-leaf-only');
+
+		if( is_array($value) AND $value[0] === 'true' )
+		{
+			return true;
+		}
+
+		return false;
 	}
 }
