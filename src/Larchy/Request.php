@@ -24,27 +24,17 @@ class Request
 	{
 		$laravelRequest = $this->laravelRequest;
 
-		$value = $laravelRequest::header('x-powerload');
+		$value = $laravelRequest::header('x-powerload', NULL);
 
-		if( is_array($value) AND $value[0] === 'true' )
-		{
-			return true;
-		}
-
-		return false;
+		return $value !== NULL AND $value[0] === 'true' OR $value[0] === 'leaf-only' ? true : false;
 	}
 
 	public function leafOnly()
 	{
 		$laravelRequest = $this->laravelRequest;
 
-		$value = $laravelRequest::header('x-leaf-only');
+		$value = $laravelRequest::header('x-powerload', NULL);
 
-		if( is_array($value) AND $value[0] === 'true' )
-		{
-			return true;
-		}
-
-		return false;
+		return $value !== NULL AND $value[0] === 'leaf-only' ? true : false;
 	}
 }

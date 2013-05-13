@@ -38,29 +38,45 @@ class RequestTest extends PHPUnit_Framework_TestCase
 	{
 		extract($this->objects);
 
+		$header = $laravelRequest->shouldReceive('header')->with('x-powerload', NULL);
+
 		# Should return 'true' if X-Powerload header is set to 'true'
-		$laravelRequest->shouldReceive('header')->once()->with('x-powerload')->andReturn(array('true'));
-		$result = $request->powerload();
-		$this->assertTrue($result);
+		$header->andReturn(array('true'));
+		$this->assertEquals( true, $request->powerload() );
+
+		# Should return 'true' if X-Powerload header is set to 'leaf-only'
+		$header->andReturn(array('leaf-only'));
+		$this->assertEquals( true, $request->powerload() );
 
 		# Should return 'false' if X-Powerload header is not set
-		$laravelRequest->shouldReceive('header')->once()->with('x-powerload')->andReturn(NULL);
-		$result = $request->powerload();
-		$this->assertFalse($result);
+		$header->andReturn(NULL);
+		$this->assertEquals( false, $request->powerload() );
+
+		# Should return 'false' if X-Powerload header value is malformed
+		$header->andReturn(array('true blablabla'));
+		$this->assertEquals( false, $request->powerload() );
 	}
 
 	public function test_leafOnly_method()
 	{
 		extract($this->objects);
 
-		# Should return 'true' if X-Leaf-Only header is set to 'true'
-		$laravelRequest->shouldReceive('header')->once()->with('x-leaf-only')->andReturn(array('true'));
-		$result = $request->leafOnly();
-		$this->assertTrue($result);
+		$header = $laravelRequest->shouldReceive('header')->with('x-powerload', NULL);
 
-		# Should return 'false' if X-Leaf-Only header is not specified
-		$laravelRequest->shouldReceive('header')->once()->with('x-leaf-only')->andReturn(NULL);
-		$result = $request->leafOnly();
-		$this->assertFalse($result);
+		# Should return 'true' if X-Powerload header value is set to 'leaf-only'
+		$header->andReturn(array('leaf-only'));
+		$this->assertEquals( true, $request->leafOnly() );
+
+		# Should return 'false' if X-Powerload header is not set to 'leaf-only'
+		$header->andReturn(array('true'));
+		$this->assertEquals( false, $request->leafOnly() );
+
+		# Should return 'false' if X-Powerload header is not set
+		$header->andReturn(NULL);
+		$this->assertEquals( false, $request->leafOnly() );
+
+		# Should return 'false' if X-Powerload header value is malformed
+		$header->andReturn(array('leafonly'));
+		$this->assertEquals( false, $request->leafOnly() );
 	}
 }
